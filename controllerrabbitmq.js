@@ -33,7 +33,6 @@ async function actualizarEmpresas() {
 
 }
 
-
 async function crearTablaAsignaciones(empresa, con) {
     const createTableSql = `CREATE TABLE IF NOT EXISTS asignaciones_${empresa} (
         id INT NOT NULL AUTO_INCREMENT,

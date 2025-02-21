@@ -193,6 +193,3 @@ function query(connection, sql, params) {
 }
 
 connectRabbitMQ();
-
-
-
