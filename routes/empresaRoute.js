@@ -1,19 +1,17 @@
-const express = require('express');
-const { asignar, desasignar, iniciarProceso , Aempresas} = require('../controller/empresaController');
-const router = express.Router();
-const mysql = require('mysql');
-const { conLocal, redisClient } = require('../db');
-const { log } = require('node:console');
+import { Router } from 'express';
+import { asignar, desasignar, iniciarProceso, Aempresas } from '../controller/empresaController';
+const router = Router();
+import { createConnection } from 'mysql';
+import { conLocal } from '../db';
 
 
 
 router.post('/api/operador', async (req, res) => {
-    const dataEntrada = req.body; // Suponiendo que estás usando middleware para parsear el cuerpo
+    const dataEntrada = req.body;
     const operador = dataEntrada.operador;
 
 
     if (operador === "actualizarEmpresas") {
-        // Lógica para actualizar empresas
     } else if (operador === "getEmpresas") {
         return res.status(200).json({ empresas: Aempresas });
     } else {
@@ -21,7 +19,6 @@ router.post('/api/operador', async (req, res) => {
     }
 });
 
-// Función para manejar el operador
 async function handleOperador(dataEntrada, res) {
     const { empresa, cadete, quien, dataQR } = dataEntrada;
 
@@ -41,11 +38,9 @@ async function handleOperador(dataEntrada, res) {
 
     try {
         const dataQRParsed = dataQR
-    
-     const  Aempresas2 = await iniciarProceso()
-    //    console.log(Aempresas['270'],"aaaa");
-        //console.log(Aempresas2);
-        
+
+        const Aempresas2 = await iniciarProceso()
+
         if (!Aempresas2[empresa]) {
             return sendResponse(res, { estado: false, mensaje: "No está cargado el ID de la empresa" });
         }
@@ -55,7 +50,7 @@ async function handleOperador(dataEntrada, res) {
             return sendResponse(res, { estado: false, mensaje: "Error al conectar a la DB" });
         }
 
-        const con = mysql.createConnection({
+        const con = createConnection({
             host: "bhsmysql1.lightdata.com.ar",
             user: AdataDB.dbuser,
             password: AdataDB.dbpass,
@@ -72,8 +67,8 @@ async function handleOperador(dataEntrada, res) {
         const didenvio = isFlex ? 0 : dataQRParsed.did;
 
         if (!isFlex) {
-            
-            
+
+
             handleRegularPackage(didenvio, empresa, cadete, quien, con, res, dataQRParsed);
         } else {
             handleFlexPackage(dataQRParsed.id, con, cadete, empresa, res);
@@ -84,7 +79,6 @@ async function handleOperador(dataEntrada, res) {
     }
 }
 
-// Funciones para manejar paquetes regulares y flexibles
 async function handleRegularPackage(didenvio, empresa, cadete, quien, con, res, dataQRParsed) {
     const didempresapaquete = dataQRParsed.empresa;
 
@@ -106,7 +100,7 @@ async function handleRegularPackage(didenvio, empresa, cadete, quien, con, res, 
             console.error("Error en consulta de envios_exteriores:", err);
         }
     } else {
-    
+
         cadete !== -2 ? asignar(didenvio, empresa, cadete, quien, res) : desasignar(didenvio, empresa, cadete, quien, res);
     }
 }
@@ -130,12 +124,10 @@ function handleFlexPackage(idshipment, con, cadete, empresa, res) {
     });
 }
 
-// Función para enviar la respuesta
 function sendResponse(res, response) {
     res.status(200).json(response);
 }
 
-// Función para manejar las consultas
 function query(connection, sql, params) {
     return new Promise((resolve, reject) => {
         connection.query(sql, params, (error, results) => {
@@ -145,7 +137,7 @@ function query(connection, sql, params) {
     });
 }
 
-module.exports = router;
+export default router;
 
 
 

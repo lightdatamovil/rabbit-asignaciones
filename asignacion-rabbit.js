@@ -1,16 +1,15 @@
-const amqp = require('amqplib');
-const mysql = require('mysql');
-const { asignar, desasignar, iniciarProceso } = require('./controllerrabbitmq');
-const { conLocal } = require('./db');
-const { log } = require('node:console');
+import { connect } from 'amqplib';
+import { createConnection } from 'mysql';
+import { asignar, desasignar, iniciarProceso } from './controllerrabbitmq';
+import { conLocal } from './db';
 const RABBITMQ_URL = 'amqp://lightdata:QQyfVBKRbw6fBb@158.69.131.226:5672';
 const QUEUE_NAME = 'asignacion';
 async function connectRabbitMQ() {
     try {
-        const startConnectionTime = performance.now(); // Tiempo de inicio de conexión
-        const connection = await amqp.connect(RABBITMQ_URL);
-        const endConnectionTime = performance.now(); // Tiempo de finalización de conexión
-        const connectionDuration = endConnectionTime - startConnectionTime; // Duración de la conexión
+        const startConnectionTime = performance.now();
+        const connection = await connect(RABBITMQ_URL);
+        const endConnectionTime = performance.now();
+        const connectionDuration = endConnectionTime - startConnectionTime;
 
         const channel = await connection.createChannel();
         await channel.assertQueue(QUEUE_NAME, { durable: true });
@@ -24,31 +23,28 @@ async function connectRabbitMQ() {
                     const dataEntrada = JSON.parse(msg.content.toString());
                     console.log("[x] Mensaje recibido:", dataEntrada);
 
-                    // Verificar si el feature es "asignacion"
                     if (dataEntrada.feature === "asignacion") {
                         const resultado = await handleOperador(dataEntrada);
 
-                        // Validar que dataEntrada.channel esté definido
                         if (!dataEntrada.canal) {
                             console.error("[x] Error: El campo 'channel' no está definido en el mensaje.");
-                            channel.ack(msg); // Confirmar el mensaje
+                            channel.ack(msg);
                             return;
                         }
 
-                        // Obtener la hora actual
                         const ahora = new Date();
-                        const horaEnvio = ahora.toLocaleTimeString(); // Formato HH:MM:SS
+                        const horaEnvio = ahora.toLocaleTimeString();
 
-                        const startSendTime = performance.now(); // Tiempo de inicio de envío
-                        await channel.sendToQueue(
-                            dataEntrada.canal, // Nombre del canal de respuesta
-                            Buffer.from(JSON.stringify(resultado)), // Respuesta
+                        const startSendTime = performance.now();
+                        channel.sendToQueue(
+                            dataEntrada.canal,
+                            Buffer.from(JSON.stringify(resultado)),
                             { persistent: true }
                         );
-                  
-                        
-                        const endSendTime = performance.now(); // Tiempo de finalización de envío
-                        const sendDuration = endSendTime - startSendTime; // Duración del envío
+
+
+                        const endSendTime = performance.now();
+                        const sendDuration = endSendTime - startSendTime;
 
                         console.log(`[x] Respuesta enviada al canal ${dataEntrada.canal} a las ${horaEnvio}: `, resultado);
                         console.log(`Tiempo de envío al canal ${dataEntrada.canal}: ${sendDuration.toFixed(2)} ms`);
@@ -58,7 +54,7 @@ async function connectRabbitMQ() {
                 } catch (error) {
                     console.error("[x] Error al procesar el mensaje:", error);
                 } finally {
-                    channel.ack(msg); // Confirmar el procesamiento del mensaje
+                    channel.ack(msg);
                 }
             }
         });
@@ -68,13 +64,10 @@ async function connectRabbitMQ() {
     }
 }
 
-
-// Función para manejar la lógica del operador
 async function handleOperador(dataEntrada) {
     const { operador, empresa, cadete, quien, dataQR } = dataEntrada;
 
     if (operador === "actualizarEmpresas") {
-        // Lógica para actualizar empresas (según sea necesario)
         return;
     }
 
@@ -112,7 +105,7 @@ async function handleOperador(dataEntrada) {
             return;
         }
 
-        const con = mysql.createConnection({
+        const con = createConnection({
             host: "bhsmysql1.lightdata.com.ar",
             user: AdataDB.dbuser,
             password: AdataDB.dbpass,
@@ -130,27 +123,26 @@ async function handleOperador(dataEntrada) {
         const didenvio = isFlex ? 0 : dataQRParsed.did;
 
         if (!isFlex) {
-          
-          return  handleRegularPackage(didenvio, empresa, cadete, quien, con, dataQRParsed);
-          
+
+            return handleRegularPackage(didenvio, empresa, cadete, quien, con, dataQRParsed);
+
         } else {
             handleFlexPackage(dataQRParsed.id, con, cadete, empresa);
         }
     } catch (error) {
-      
-        
+
+
         console.error("Error en el manejo del operador:", error);
     }
 }
 
-// Función para manejar paquetes regulares
 async function handleRegularPackage(didenvio, empresa, cadete, quien, con, dataQRParsed) {
     const didempresapaquete = dataQRParsed.empresa;
-    
+
     if (empresa != didempresapaquete) {
         const sql = `SELECT didLocal FROM envios_exteriores WHERE superado=0 AND elim=0 AND didExterno = ? AND didEmpresa = ?`;
         try {
-           
+
             const rows = await query(con, sql, [didenvio, didempresapaquete]);
 
             if (rows.length > 0) {
@@ -160,18 +152,17 @@ async function handleRegularPackage(didenvio, empresa, cadete, quien, con, dataQ
             } else {
                 console.log({ estado: false, mensaje: "El paquete externo no existe en la logística." });
             }
-        } catch (err) { 
+        } catch (err) {
             console.error("Error en consulta de envios_exteriores:", err);
         }
     } else {
-  
-        
-            return cadete !== -2 ? asignar(didenvio, empresa, cadete, quien) : desasignar(didenvio, empresa, cadete, quien);
-        
+
+
+        return cadete !== -2 ? asignar(didenvio, empresa, cadete, quien) : desasignar(didenvio, empresa, cadete, quien);
+
     }
 }
 
-// Función para manejar paquetes flexibles
 function handleFlexPackage(idshipment, con, cadete, empresa) {
     const query = `SELECT did FROM envios WHERE flex=1 AND superado=0 AND elim=0 AND ml_shipment_id = ?`;
     con.query(query, [idshipment], (err, rows) => {
@@ -192,7 +183,6 @@ function handleFlexPackage(idshipment, con, cadete, empresa) {
     });
 }
 
-// Función para manejar consultas SQL con Promesas
 function query(connection, sql, params) {
     return new Promise((resolve, reject) => {
         connection.query(sql, params, (error, results) => {
@@ -202,7 +192,6 @@ function query(connection, sql, params) {
     });
 }
 
-// Iniciar la conexión a RabbitMQ
 connectRabbitMQ();
 
 

@@ -18,5 +18,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "@types/amqplib": "^0.10.6",
+    "@types/body-parser": "^1.19.5",
+    "@types/express": "^5.0.0",
+    "@types/mysql": "^2.15.26"
+  }
 }

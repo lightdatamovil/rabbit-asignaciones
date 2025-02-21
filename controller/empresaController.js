@@ -1,14 +1,11 @@
-const { log } = require('console');
-const {conLocal,redisClient} = require('../db');
-const http = require('http'); // Asegúrate de importar el módulo http
-const mysql = require('mysql');
-const qs = require('querystring');
-
-
+import { conLocal, redisClient } from '../db';
+import { createServer } from 'http';
+import { escape, createConnection } from 'mysql';
+import { decode } from 'querystring';
 
 async function crearUsuario(empresa, con) {
     const username = `usuario_${empresa}`;
-    const password = '78451296'; // Cambia esto por una contraseña segura
+    const password = '78451296';
 
     const createUserSql = `CREATE USER IF NOT EXISTS ? IDENTIFIED BY ?`;
     const grantPrivilegesSql = `GRANT ALL PRIVILEGES ON \`asigna_data\`.* TO ?`;
@@ -28,14 +25,11 @@ async function crearUsuario(empresa, con) {
     });
 }
 
-
 async function actualizarEmpresas() {
     const empresasDataJson = await redisClient.get('empresas');
-   let   Aempresas = JSON.parse(empresasDataJson);
-   return Aempresas
-  
+    let Aempresas = JSON.parse(empresasDataJson);
+    return Aempresas
 }
-
 
 async function crearTablaAsignaciones(empresa, con) {
     const createTableSql = `CREATE TABLE IF NOT EXISTS asignaciones_${empresa} (
@@ -63,11 +57,9 @@ async function crearTablaAsignaciones(empresa, con) {
         });
     });
 }
-//const guardamos=  await guardarDatosEnTabla(empresa, did, cadete, didenvio, estado, quien, conLocal);
 
 async function guardarDatosEnTabla(empresa, didenvio, chofer, estado, quien, desde, con) {
-    // Verificar si ya existe un registro con el mismo didenvio y superado = 0
-    const checkSql = `SELECT id FROM asignaciones_${empresa} WHERE didenvio = ${mysql.escape(didenvio)} AND superado = 0`;
+    const checkSql = `SELECT id FROM asignaciones_${empresa} WHERE didenvio = ${escape(didenvio)} AND superado = 0`;
 
     return new Promise((resolve, reject) => {
         con.query(checkSql, async (err, rows) => {
@@ -76,20 +68,18 @@ async function guardarDatosEnTabla(empresa, didenvio, chofer, estado, quien, des
             }
 
             const Aresult = Object.values(JSON.parse(JSON.stringify(rows)));
-console.log(Aresult,"aaaa");
+            console.log(Aresult, "aaaa");
 
             if (Aresult.length > 0) {
-              
-                
-                // Si existe, actualizar el campo superado a 1
+
                 const updateSql = `UPDATE asignaciones_${empresa} SET superado = 1 WHERE id = ${Aresult[0].id}`;
                 con.query(updateSql, (err) => {
                     if (err) {
                         return reject({ estado: false, mensaje: "Error al actualizar el registro de asignaciones." });
                     }
-                    const insertSql = `INSERT INTO asignaciones_${empresa} (didenvio, chofer, estado, quien, desde) VALUES (${mysql.escape(didenvio)}, ${mysql.escape(chofer)}, ${mysql.escape(estado)}, ${mysql.escape(quien)}, ${mysql.escape(desde)})`;
-       
-                
+                    const insertSql = `INSERT INTO asignaciones_${empresa} (didenvio, chofer, estado, quien, desde) VALUES (${escape(didenvio)}, ${escape(chofer)}, ${escape(estado)}, ${escape(quien)}, ${escape(desde)})`;
+
+
                     con.query(insertSql, (err) => {
                         if (err) {
                             return reject({ estado: false, mensaje: "Error al insertar en la tabla de asignaciones." });
@@ -99,10 +89,8 @@ console.log(Aresult,"aaaa");
                     resolve({ estado: true, mensaje: "Registro actualizado correctamente." });
                 });
             } else {
-                // Si no existe, insertar un nuevo registro
-                const insertSql = `INSERT INTO asignaciones_${empresa} (didenvio, chofer, estado, quien, desde) VALUES (${mysql.escape(didenvio)}, ${mysql.escape(chofer)}, ${mysql.escape(estado)}, ${mysql.escape(quien)}, ${mysql.escape(desde)})`;
-       
-                
+                const insertSql = `INSERT INTO asignaciones_${empresa} (didenvio, chofer, estado, quien, desde) VALUES (${escape(didenvio)}, ${escape(chofer)}, ${escape(estado)}, ${escape(quien)}, ${escape(desde)})`;
+
                 con.query(insertSql, (err) => {
                     if (err) {
                         return reject({ estado: false, mensaje: "Error al insertar en la tabla de asignaciones." });
@@ -117,14 +105,12 @@ console.log(Aresult,"aaaa");
 
 
 async function asignar(didenvio, empresa, cadete, quien, res) {
-  
-  const Aempresas= await iniciarProceso();
+
+    const Aempresas = await iniciarProceso();
     const AdataDB = Aempresas[empresa];
     let response = "";
-   // console.log(Aempresas);
-    
 
-    const con = mysql.createConnection({
+    const con = createConnection({
         host: "bhsmysql1.lightdata.com.ar",
         user: AdataDB.dbuser,
         password: AdataDB.dbpass,
@@ -138,9 +124,8 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
         }
     });
 
-    // Verificar si el paquete ya está asignado
-    const sqlAsignado = `SELECT id,estado FROM envios_asignaciones WHERE superado=0 AND elim=0 AND didEnvio = ${mysql.escape(didenvio)} AND operador = ${mysql.escape(cadete)}`;
-    
+    const sqlAsignado = `SELECT id,estado FROM envios_asignaciones WHERE superado=0 AND elim=0 AND didEnvio = ${escape(didenvio)} AND operador = ${escape(cadete)}`;
+
     con.query(sqlAsignado, async (err, rows) => {
         if (err) {
             response = { estado: false, mensaje: "Error en la consulta de asignación." };
@@ -151,18 +136,17 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
         const Aresult = Object.values(JSON.parse(JSON.stringify(rows)));
 
         if (Aresult.length > 0 && empresa != 4) {
-         ;
-            
-            const did2= rows[0]["id"]
-            const estado2= rows[0]["estado"]
-;            
-            await guardarDatosEnTabla(empresa, did2, cadete,  estado2, quien,0, conLocal);
+            ;
+
+            const did2 = rows[0]["id"]
+            const estado2 = rows[0]["estado"]
+                ;
+            await guardarDatosEnTabla(empresa, did2, cadete, estado2, quien, 0, conLocal);
             response = { estado: false, mensaje: "Ya tienes el paquete asignado." };
             con.end();
             return res.writeHead(200).end(JSON.stringify(response));
         } else {
-            // Obtener el estado del envío
-            const estadoQuery = `SELECT estado FROM envios_historial WHERE superado=0 AND elim=0 AND didEnvio = ${mysql.escape(didenvio)}`;
+            const estadoQuery = `SELECT estado FROM envios_historial WHERE superado=0 AND elim=0 AND didEnvio = ${escape(didenvio)}`;
             con.query(estadoQuery, async (err, rows) => {
                 if (err) {
                     response = { estado: false, mensaje: "Error al obtener el estado." };
@@ -173,20 +157,18 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
                 const estadoResult = Object.values(JSON.parse(JSON.stringify(rows)));
                 if (estadoResult.length > 0) {
                     const estado = estadoResult[0]["estado"];
-                    
+
                     try {
-                        // Crear la tabla asignaciones_{didempresa} si no existe
                         await crearTablaAsignaciones(empresa, conLocal);
 
                         await crearUsuario(empresa, conLocal);
 
-                        // Insertar en envios_asignaciones
-                        const insertSql = `INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES ("", ${mysql.escape(cadete)}, ${mysql.escape(didenvio)}, ${mysql.escape(estado)}, ${mysql.escape(quien)}, 'Movil')`;
-                        console.log(insertSql,"aaaa");
-                        
+                        const insertSql = `INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES ("", ${escape(cadete)}, ${escape(didenvio)}, ${escape(estado)}, ${escape(quien)}, 'Movil')`;
+                        console.log(insertSql, "aaaa");
+
                         con.query(insertSql, (err, result) => {
-                            console.log(err,"bb");
-                            
+                            console.log(err, "bb");
+
                             if (err) {
                                 response = { estado: false, mensaje: "Error al insertar en envios_asignaciones." };
                                 con.end();
@@ -195,8 +177,7 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
 
                             const did = result.insertId;
 
-                            // Actualizar el did en envios_asignaciones
-                            const updateDidSql = `UPDATE envios_asignaciones SET did = ${mysql.escape(did)} WHERE superado=0 AND elim=0 AND id = ${mysql.escape(did)}`;
+                            const updateDidSql = `UPDATE envios_asignaciones SET did = ${escape(did)} WHERE superado=0 AND elim=0 AND id = ${escape(did)}`;
                             con.query(updateDidSql, (err) => {
                                 if (err) {
                                     response = { estado: false, mensaje: "Error al actualizar el did." };
@@ -204,8 +185,7 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
                                     return res.writeHead(500).end(JSON.stringify(response));
                                 }
 
-                                // Marcar como superado las líneas anteriores
-                                const superadoSql = `UPDATE envios_asignaciones SET superado = 1 WHERE superado=0 AND elim=0 AND didEnvio = ${mysql.escape(didenvio)} AND did != ${mysql.escape(did)}`;
+                                const superadoSql = `UPDATE envios_asignaciones SET superado = 1 WHERE superado=0 AND elim=0 AND didEnvio = ${escape(didenvio)} AND did != ${escape(did)}`;
                                 con.query(superadoSql, (err) => {
                                     if (err) {
                                         response = { estado: false, mensaje: "Error al marcar como superado." };
@@ -213,8 +193,7 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
                                         return res.writeHead(500).end(JSON.stringify(response));
                                     }
 
-                                    // Actualizar el chofer asignado
-                                    const choferSql = `UPDATE envios SET choferAsignado = ${mysql.escape(cadete)} WHERE superado=0 AND elim=0 AND did = ${mysql.escape(didenvio)}`;
+                                    const choferSql = `UPDATE envios SET choferAsignado = ${escape(cadete)} WHERE superado=0 AND elim=0 AND did = ${escape(didenvio)}`;
                                     con.query(choferSql, (err) => {
                                         if (err) {
                                             response = { estado: false, mensaje: "Error al actualizar chofer." };
@@ -222,8 +201,7 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
                                             return res.writeHead(500).end(JSON.stringify(response));
                                         }
 
-                                        // Actualizar ruteo parada
-                                        const ruteoSql = `UPDATE ruteo_paradas SET superado = 1 WHERE superado=0 AND elim=0 AND didPaquete = ${mysql.escape(didenvio)}`;
+                                        const ruteoSql = `UPDATE ruteo_paradas SET superado = 1 WHERE superado=0 AND elim=0 AND didPaquete = ${escape(didenvio)}`;
                                         con.query(ruteoSql, (err) => {
                                             if (err) {
                                                 response = { estado: false, mensaje: "Error al actualizar ruteo." };
@@ -231,8 +209,7 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
                                                 return res.writeHead(500).end(JSON.stringify(response));
                                             }
 
-                                            // Actualizar envios_historial con el nuevo cadete
-                                            const historialSql = `UPDATE envios_historial SET didCadete = ${mysql.escape(cadete)} WHERE superado=0 AND elim=0 AND didEnvio = ${mysql.escape(didenvio)}`;
+                                            const historialSql = `UPDATE envios_historial SET didCadete = ${escape(cadete)} WHERE superado=0 AND elim=0 AND didEnvio = ${escape(didenvio)}`;
                                             con.query(historialSql, (err) => {
                                                 if (err) {
                                                     response = { estado: false, mensaje: "Error al actualizar historial." };
@@ -240,22 +217,17 @@ async function asignar(didenvio, empresa, cadete, quien, res) {
                                                     return res.writeHead(500).end(JSON.stringify(response));
                                                 }
 
-                                                // Actualizar costos chofer
-                                                const costoSql = `UPDATE envios SET costoActualizadoChofer = 0 WHERE superado=0 AND elim=0 AND did = ${mysql.escape(didenvio)}`;
+                                                const costoSql = `UPDATE envios SET costoActualizadoChofer = 0 WHERE superado=0 AND elim=0 AND did = ${escape(didenvio)}`;
                                                 con.query(costoSql, async (err) => {
                                                     if (err) {
                                                         response = { estado: false, mensaje: "Error al actualizar costos." };
                                                         con.end();
                                                         return res.writeHead(500).end(JSON.stringify(response));
                                                     }
-                                                 //   async function guardarDatosEnTabla(empresa, didenvio, chofer, estado, quien, desde, con)
-                                                  
-                                                 // Guardar datos en la tabla asignaciones_{didempresa}
-                                                 
-                                                  const guardamos=  await guardarDatosEnTabla(empresa, did, cadete,  estado, quien,0, conLocal);
-console.log(guardamos,"bbbbbbbbb");
 
-                                                    // Responder todo OK
+                                                    const guardamos = await guardarDatosEnTabla(empresa, did, cadete, estado, quien, 0, conLocal);
+                                                    console.log(guardamos, "bbbbbbbbb");
+
                                                     response = { estado: true, mensaje: "Paquete asignado correctamente." };
                                                     con.end();
                                                     return res.writeHead(200).end(JSON.stringify(response));
@@ -267,7 +239,7 @@ console.log(guardamos,"bbbbbbbbb");
                             });
                         });
                     } catch (error) {
-                        response = error; // Captura cualquier error de creación de tabla o inserción
+                        response = error;
                         con.end();
                         return res.writeHead(500).end(JSON.stringify(response));
                     }
@@ -282,18 +254,18 @@ console.log(guardamos,"bbbbbbbbb");
 }
 
 
-async function desasignar(didenvio, empresa, cadete, quien, res) {
+async function desasignar(didenvio, empresa, res) {
     const AdataDB = Aempresas[empresa];
     let response = "";
 
-    const con = mysql.createConnection({
+    const con = createConnection({
         host: "bhsmysql1.lightdata.com.ar",
         user: AdataDB.dbuser,
         password: AdataDB.dbpass,
         database: AdataDB.dbname
     });
 
-    con.connect(function(err) {
+    con.connect(function (err) {
         if (err) {
             response = { estado: false, mensaje: "Error de conexión a la base de datos." };
             res.writeHead(500);
@@ -301,7 +273,7 @@ async function desasignar(didenvio, empresa, cadete, quien, res) {
         }
     });
 
-    let sql = `UPDATE envios_asignaciones SET superado=1 WHERE superado=0 AND elim=0 AND didEnvio = ${mysql.escape(didenvio)}`;
+    let sql = `UPDATE envios_asignaciones SET superado=1 WHERE superado=0 AND elim=0 AND didEnvio = ${escape(didenvio)}`;
     con.query(sql, (err) => {
         if (err) {
             response = { estado: false, mensaje: "Error al desasignar." };
@@ -309,7 +281,7 @@ async function desasignar(didenvio, empresa, cadete, quien, res) {
             return res.writeHead(500).end(JSON.stringify(response));
         }
 
-        let historialSql = `UPDATE envios_historial SET didCadete=0 WHERE superado=0 AND elim=0 AND didEnvio = ${mysql.escape(didenvio)}`;
+        let historialSql = `UPDATE envios_historial SET didCadete=0 WHERE superado=0 AND elim=0 AND didEnvio = ${escape(didenvio)}`;
         con.query(historialSql, (err) => {
             if (err) {
                 response = { estado: false, mensaje: "Error al actualizar historial." };
@@ -317,7 +289,7 @@ async function desasignar(didenvio, empresa, cadete, quien, res) {
                 return res.writeHead(500).end(JSON.stringify(response));
             }
 
-            let choferSql = `UPDATE envios SET choferAsignado = 0 WHERE superado=0 AND elim=0 AND did = ${mysql.escape(didenvio)}`;
+            let choferSql = `UPDATE envios SET choferAsignado = 0 WHERE superado=0 AND elim=0 AND did = ${escape(didenvio)}`;
             con.query(choferSql, (err) => {
                 if (err) {
                     response = { estado: false, mensaje: "Error al desasignar chofer." };
@@ -333,7 +305,7 @@ async function desasignar(didenvio, empresa, cadete, quien, res) {
     });
 }
 
-const server = http.createServer((req, res) => {
+const server = createServer((req, res) => {
     if (req.method === 'POST') {
         let body = '';
 
@@ -342,11 +314,10 @@ const server = http.createServer((req, res) => {
         });
 
         req.on('end', async () => {
-            const dataEntrada = qs.decode(body);
+            const dataEntrada = decode(body);
             const operador = dataEntrada.operador;
 
             if (operador === "actualizarEmpresas") {
-                // Aquí puedes llamar a la función para actualizar empresas
             } else if (operador === "getEmpresas") {
                 const buffer = JSON.stringify("pruebas2 =>" + JSON.stringify(Aempresas));
                 res.writeHead(200);
@@ -370,7 +341,7 @@ async function handleOperador(dataEntrada, res) {
     }
 
     const fechaunix = Date.now();
-    const sqlLog = `INSERT INTO logs (didempresa, quien, cadete, data, fechaunix) VALUES (${mysql.escape(empresa)}, ${mysql.escape(quien)}, ${mysql.escape(cadete)}, ${mysql.escape(dataQR)}, ${mysql.escape(fechaunix)})`;
+    const sqlLog = `INSERT INTO logs (didempresa, quien, cadete, data, fechaunix) VALUES (${escape(empresa)}, ${escape(quien)}, ${escape(cadete)}, ${escape(dataQR)}, ${escape(fechaunix)})`;
 
     conLocal.query(sqlLog, (err, result) => {
         if (err) {
@@ -383,7 +354,7 @@ async function handleOperador(dataEntrada, res) {
         const AdataDB = Aempresas[empresa];
 
         if (AdataDB.dbname && AdataDB.dbuser && AdataDB.dbpass) {
-            const con = mysql.createConnection({
+            const con = createConnection({
                 host: "bhsmysql1.lightdata.com.ar",
                 user: AdataDB.dbuser,
                 password: AdataDB.dbpass,
@@ -419,7 +390,7 @@ function handleRegularPackage(didenvio, empresa, cadete, quien, con, res) {
     const didempresapaquete = dataQRParsed.empresa;
 
     if (empresa !== didempresapaquete) {
-        const sql = `SELECT didLocal FROM envios_exteriores WHERE superado=0 AND elim=0 AND didExterno = ${mysql.escape(didenvio)} AND didEmpresa = ${mysql.escape(didempresapaquete)}`;
+        const sql = `SELECT didLocal FROM envios_exteriores WHERE superado=0 AND elim=0 AND didExterno = ${escape(didenvio)} AND didEmpresa = ${escape(didempresapaquete)}`;
         con.query(sql, (err, rows) => {
             if (err) {
                 console.error("Error en consulta de envios_exteriores:", err);
@@ -450,7 +421,7 @@ function handleRegularPackage(didenvio, empresa, cadete, quien, con, res) {
 }
 
 function handleFlexPackage(idshipment, con, cadete, empresa, res) {
-    const query = `SELECT did FROM envios WHERE flex=1 AND superado=0 AND elim=0 AND ml_shipment_id = ${mysql.escape(idshipment)}`;
+    const query = `SELECT did FROM envios WHERE flex=1 AND superado=0 AND elim=0 AND ml_shipment_id = ${escape(idshipment)}`;
     con.query(query, (err, rows) => {
         if (err) {
             const response = { estado: false, mensaje: query };
@@ -469,7 +440,6 @@ function handleFlexPackage(idshipment, con, cadete, empresa, res) {
                 desasignar(didenvio, empresa, cadete, quien, res);
             }
         } else {
-            // Aquí puedes manejar lo que sucede si no se encuentra el paquete
         }
     });
 }
@@ -482,13 +452,10 @@ function sendResponse(res, response) {
 
 async function iniciarProceso() {
     try {
-        // Conectar a Redis
         await redisClient.connect();
 
-        // Actualizar empresas antes de cerrar la conexión
-       let empresas = await actualizarEmpresas(Aempresas);
+        let empresas = await actualizarEmpresas(Aempresas);
 
-        // Cerrar la conexión de Redis
         await redisClient.quit();
         console.log("Conexión a Redis cerrada.");
         return empresas
@@ -497,8 +464,7 @@ async function iniciarProceso() {
     }
 }
 
-// Llamar a la función para iniciar el proceso
-let Aempresas=  iniciarProceso();
+let Aempresas = iniciarProceso();
 
 
-module.exports = { asignar,desasignar ,Aempresas,iniciarProceso,actualizarEmpresas};
+export default { asignar, desasignar, Aempresas, iniciarProceso, actualizarEmpresas };
