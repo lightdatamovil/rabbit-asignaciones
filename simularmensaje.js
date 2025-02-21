@@ -1,17 +1,17 @@
 
 
-const amqp = require('amqplib');
+import { connect } from 'amqplib';
 
 async function sendMessage() {
     try {
-        const connection = await amqp.connect('amqp://lightdata:QQyfVBKRbw6fBb@158.69.131.226:5672'); // Cambia esto si RabbitMQ está en otro servidor
+        const connection = await connect('amqp://lightdata:QQyfVBKRbw6fBb@158.69.131.226:5672');
         const channel = await connection.createChannel();
         const queue = 'asignacion';
 
         const message = {
             empresa: "270",
-            feacture:"asignacion",
-            canal:"a234",
+            feacture: "asignacion",
+            canal: "a234",
             cadete: 50,
             quien: 49,
             dataQR: {

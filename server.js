@@ -1,13 +1,11 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const routes = require('./routes/empresaRoute'); // Asegúrate de que la ruta sea correcta
-const mysql = require('mysql');
-const iniciarProceso2 = require('./routes/empresaRoute');
+import express from 'express';
+import { json } from 'body-parser';
+import routes from './routes/empresaRoute';
 
 const app = express();
-app.use(bodyParser.json()); // Para parsear el cuerpo de las solicitudes JSON
+app.use(json());
 
-app.use("/",routes); // Usa el router de las rutas
+app.use("/", routes);
 
 
 const PORT = process.env.PORT || 3000;
