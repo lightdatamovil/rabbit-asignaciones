@@ -33,7 +33,7 @@ async function connectRabbitMQ() {
 
                     if (errorMessage) {
                         console.log("[x] Error al verificar los parámetros:", errorMessage);
-                        return { message: errorMessage };
+                        return { mensaje: errorMessage };
                     }
 
                     const company = await getCompanyById(body.companyId);
