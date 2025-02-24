@@ -1,6 +1,6 @@
 import { connect } from 'amqplib';
 import dotenv from 'dotenv';
-import { asignar } from './controller/asignacionesController.js';
+import { asignar, desasignar } from './controller/asignacionesController.js';
 import { verifyParamaters } from './src/funciones/verifyParameters.js';
 import { getCompanyById, redisClient } from './db.js';
 
@@ -38,7 +38,7 @@ async function connectRabbitMQ() {
 
                     const company = await getCompanyById(body.companyId);
 
-                    const resultado = await asignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
+                    let resultado = body.driverId == -2 ? await desasignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom) : await asignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
 
                     const nowDate = new Date();
                     const nowHour = nowDate.toLocaleTimeString();

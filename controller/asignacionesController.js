@@ -115,7 +115,6 @@ async function idFromLightdataShipment(company, dataQr, dbConnection) {
     const companyIdFromShipment = dataQr.empresa;
 
     const shipmentId = dataQr.did;
-
     if (company.did != companyIdFromShipment) {
         try {
             const sql = `SELECT didLocal FROM envios_exteriores WHERE superado=0 AND elim=0 AND didExterno = ? AND didEmpresa = ?`;

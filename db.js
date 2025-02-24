@@ -1,15 +1,7 @@
 import redis from 'redis';
 import dotenv from 'dotenv';
 
-console.log("Loading env file:", process.env.ENV_FILE || ".env");
-
 dotenv.config({ path: process.env.ENV_FILE || ".env" });
-
-// Now log the environment variables to check if they are loaded
-console.log("REDIS_HOST:", process.env.REDIS_HOST);
-console.log("REDIS_PORT:", process.env.REDIS_PORT);
-console.log("REDIS_PASSWORD:", process.env.REDIS_PASSWORD);
-
 
 const redisHost = process.env.REDIS_HOST;
 const redisPort = process.env.REDIS_PORT;
