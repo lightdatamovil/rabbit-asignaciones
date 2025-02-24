@@ -4,7 +4,7 @@ import { asignar } from './controller/asignacionesController.js';
 import { verifyParamaters } from './src/funciones/verifyParameters.js';
 import { getCompanyById, redisClient } from './db.js';
 
-dotenv.config();
+dotenv.config({ path: process.env.ENV_FILE || '.env' });
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL;
 const QUEUE_NAME = process.env.QUEUE_NAME;
