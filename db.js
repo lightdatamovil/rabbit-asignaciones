@@ -16,8 +16,7 @@ const databaseName = process.env.DATABASE_NAME;
 export const redisClient = redis.createClient({
     socket: {
         host: redisHost,
-        // TODO: Descomentar para test
-        // port: redisPort,
+        port: redisPort,
     },
     password: redisPassword,
 });
@@ -34,7 +33,8 @@ export function getDbConfig() {
         user: databaseUser,
         password: databasePassword,
         database: databaseName,
-        port: databasePort
+        // TODO: Descomentar para test
+        // port: databasePort
     };
 }
 

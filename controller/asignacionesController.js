@@ -1,9 +1,9 @@
 import { executeQuery, getDbConfig, getProdDbConfig } from '../db.js';
-import mysql from 'mysql';
+import mysql2 from 'mysql2';
 
 export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
     const dbConfig = getProdDbConfig(company);
-    const dbConnection = mysql.createConnection(dbConfig);
+    const dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
     try {
@@ -65,7 +65,7 @@ export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
 
 export async function desasignar(company, userId, dataQr, deviceFrom) {
     const dbConfig = getProdDbConfig(company);
-    const dbConnection = mysql.createConnection(dbConfig);
+    const dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
     try {
@@ -154,7 +154,7 @@ async function idFromFlexShipment(shipmentId, dbConnection) {
 
 async function crearTablaAsignaciones(companyId) {
     const dbConfig = getDbConfig();
-    const dbConnection = mysql.createConnection(dbConfig);
+    const dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
     try {
@@ -187,7 +187,7 @@ async function crearTablaAsignaciones(companyId) {
 
 async function crearUsuario(companyId) {
     const dbConfig = getDbConfig();
-    const dbConnection = mysql.createConnection(dbConfig);
+    const dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
     try {
@@ -211,7 +211,7 @@ async function crearUsuario(companyId) {
 
 async function insertAsignacionesDB(companyId, shipmentId, driverId, shipmentState, userId, deviceFrom) {
     const dbConfig = getDbConfig();
-    const dbConnection = mysql.createConnection(dbConfig);
+    const dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
     try {
