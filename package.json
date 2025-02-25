@@ -8,12 +8,12 @@
     "redis": "^4.7.0"
   },
   "type": "module",
-  "name": "asignaciones-real",
+  "name": "server-rabbit-asignaciones",
   "version": "1.0.0",
   "main": "db.js",
   "scripts": {
-    "dev": "node -r dotenv/config server.js dotenv_config_path=.env.dev",
-    "prod": "node -r dotenv/config server.js dotenv_config_path=.env.prod"
+    "dev": "node -r dotenv/config server-rabbit-asignaciones.js dotenv_config_path=.env.dev",
+    "prod": "node -r dotenv/config server-rabbit-asignaciones.js dotenv_config_path=.env.prod"
   },
   "keywords": [],
   "author": "",
