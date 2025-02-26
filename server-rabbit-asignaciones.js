@@ -29,8 +29,8 @@ async function connectRabbitMQ() {
 
         channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
             if (msg !== null) {
+                const body = JSON.parse(msg.content.toString());
                 try {
-                    const body = JSON.parse(msg.content.toString());
                     console.log("[x] Mensaje recibido:", body);
 
                     const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
@@ -64,6 +64,14 @@ async function connectRabbitMQ() {
 
                 } catch (error) {
                     console.error("[x] Error al procesar el mensaje:", error);
+                    let a = channel.sendToQueue(
+                        body.channel,
+                        Buffer.from(JSON.stringify({ feature: body.feature, success: false, message: error.message })),
+                        { persistent: true }
+                    );
+                    if (a) {
+                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, success: false, message: error.message });
+                    }
                 } finally {
                     channel.ack(msg);
                 }
@@ -71,11 +79,11 @@ async function connectRabbitMQ() {
         });
         channel.consume(QUEUE_NAME_DESASIGNACION, async (msg) => {
             if (msg !== null) {
+                const body = JSON.parse(msg.content.toString());
                 try {
-                    const body = JSON.parse(msg.content.toString());
                     console.log("[x] Mensaje recibido:", body);
 
-                    const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
+                    const errorMessage = verifyParamaters(body, ['dataQr', 'deviceFrom', 'channel']);
 
                     if (errorMessage) {
                         console.log("[x] Error al verificar los parámetros:", errorMessage);
@@ -85,7 +93,7 @@ async function connectRabbitMQ() {
                     const company = await getCompanyById(body.companyId);
 
                     const resultado = await desasignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
-
+                    console.log("[x] Respuesta enviada:", resultado);
                     const nowDate = new Date();
                     const nowHour = nowDate.toLocaleTimeString();
 
@@ -106,6 +114,14 @@ async function connectRabbitMQ() {
 
                 } catch (error) {
                     console.error("[x] Error al procesar el mensaje:", error);
+                    let a = channel.sendToQueue(
+                        body.channel,
+                        Buffer.from(JSON.stringify({ feature: body.feature, success: false, message: error.message })),
+                        { persistent: true }
+                    );
+                    if (a) {
+                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, success: false, message: error.message });
+                    }
                 } finally {
                     channel.ack(msg);
                 }
