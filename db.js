@@ -89,12 +89,12 @@ export async function getCompanyById(companyCode) {
     return companiesList.find(company => Number(company.did) === Number(companyCode)) || null;
 }
 
-export async function executeQuery(connection, query, values) {
+export async function executeQuery(dbConnection, query, values) {
     // console.log("Query:", query);
     // console.log("Values:", values);
     try {
         return new Promise((resolve, reject) => {
-            connection.query(query, values, (err, results) => {
+            dbConnection.query(query, values, (err, results) => {
                 if (err) {
                     reject(err);
                 } else {
