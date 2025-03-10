@@ -141,7 +141,7 @@ async function idFromLightdataShipment(company, dataQr, dbConnection) {
 
 async function idFromFlexShipment(shipmentId, dbConnection) {
     try {
-        const query = `SELECT did FROM envios WHERE flex=1 AND superado=0 AND elim=0 AND ml_shipment_id = ?`;
+        const query = `SELECT did FROM envios WHERE flex=1 AND superado=0 AND elim=0 AND ml_shipment_id = ? LIMIT 1`;
         const rows = await executeQuery(dbConnection, query, [shipmentId]);
 
         if (rows.length > 0) {

@@ -45,7 +45,7 @@ export async function updateRedis(empresaId, envioId, choferId) {
     await redisClient.set('DWRTE', JSON.stringify(DWRTE));
 }
 
-let companiesList = [];
+let companiesList = {};
 
 export function getDbConfig() {
     return {
@@ -68,25 +68,36 @@ export function getProdDbConfig(company) {
 
 async function loadCompaniesFromRedis() {
     try {
-        const companysDataJson = await redisClient.get('empresasData');
-        companiesList = companysDataJson ? Object.values(JSON.parse(companysDataJson)) : [];
+        const companiesListString = await redisClient.get('empresasData');
+
+        companiesList = JSON.parse(companiesListString);
+
     } catch (error) {
-        console.error("Error al cargar las empresas desde Redis:", error);
+        console.error("Error en loadCompaniesFromRedis:", error);
         throw error;
     }
 }
 
-export async function getCompanyById(companyCode) {
-    if (!Array.isArray(companiesList) || companiesList.length === 0) {
-        try {
-            await loadCompaniesFromRedis();
-        } catch (error) {
-            console.error("Error al cargar las empresas desde Redis2:", error);
-            throw error;
-        }
-    }
+export async function getCompanyById(companyId) {
+    try {
+        let company = companiesList[companyId];
 
-    return companiesList.find(company => Number(company.did) === Number(companyCode)) || null;
+        if (company == undefined || Object.keys(companiesList).length === 0) {
+            try {
+                await loadCompaniesFromRedis();
+
+                company = companiesList[companyId];
+            } catch (error) {
+                console.error("Error al cargar compañías desde Redis:", error);
+                throw error;
+            }
+        }
+
+        return company;
+    } catch (error) {
+        console.error("Error en getCompanyById:", error);
+        throw error;
+    }
 }
 
 export async function executeQuery(dbConnection, query, values) {
