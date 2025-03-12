@@ -1,4 +1,4 @@
-import { executeQuery, getDbConfig, getProdDbConfig } from '../db.js';
+import { executeQuery, getDbConfig, getProdDbConfig, updateRedis } from '../db.js';
 import mysql2 from 'mysql2';
 
 export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
