@@ -1,5 +1,6 @@
 import { executeQuery, getDbConfig, getProdDbConfig, updateRedis } from '../db.js';
 import mysql2 from 'mysql2';
+import { logRed, logYellow } from '../src/funciones/logsCustom.js';
 
 export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
     const dbConfig = getProdDbConfig(company);
@@ -51,14 +52,16 @@ export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
         for (const { sql, values } of queries) {
             await executeQuery(dbConnection, sql, values);
         }
-
+        logYellow("llegmoas1")
         await insertAsignacionesDB(company.did, did, driverId, estado, userId, deviceFrom);
+        logYellow("llegmoas2")
 
-        // await updateRedis(company.did, shipmentId, driverId);
-
+        await updateRedis(company.did, shipmentId, driverId);
+        logYellow("llegmoas3")
         return { feature: "asignacion", estadoRespuesta: true, mensaje: "Asignación realizada correctamente" };
     } catch (error) {
-        console.error("Error al asignar paquete:", error);
+
+        logRed(`Error al asignar paquete:  ${error.message}`)
         throw error;
     } finally {
         dbConnection.end();
@@ -108,7 +111,8 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
 
         return { feature: "asignacion", estadoRespuesta: true, mensaje: "Desasignación realizada correctamente" };
     } catch (error) {
-        console.error("Error al desasignar paquete:", error);
+ 
+        logRed(`Error al desasignar paquete:  ${error.message}`)
         throw error;
     } finally {
         dbConnection.end();
@@ -131,7 +135,8 @@ async function idFromLightdataShipment(company, dataQr, dbConnection) {
                 throw new Error("El paquete externo no existe en la logística.");
             }
         } catch (error) {
-            console.error("Error al obtener el id del envío:", error);
+          
+            logRed(`Error al obtener el id del envío:  ${error.message}`)
             throw error;
         }
     } else {
@@ -181,7 +186,8 @@ async function crearTablaAsignaciones(companyId) {
 
         await executeQuery(dbConnection, createTableSql);
     } catch (error) {
-        console.error("Error al crear la tabla de asignaciones:", error);
+        logRed(`Error al crear la tabla de asignaciones:  ${error.message}`)
+      
         throw error;
     } finally {
         dbConnection.end();
@@ -205,7 +211,8 @@ async function crearUsuario(companyId) {
 
         return;
     } catch (error) {
-        console.error("Error al crear el usuario:", error);
+        logRed(`Error al crear el usuario:  ${error.message}`)
+    
         throw error;
     } finally {
         dbConnection.end();
@@ -232,7 +239,8 @@ async function insertAsignacionesDB(companyId, shipmentId, driverId, shipmentSta
             await executeQuery(dbConnection, insertSql, [shipmentId, driverId, shipmentState, userId, deviceFrom]);
         }
     } catch (error) {
-        console.error("Error al insertar asignaciones en la base de datos:", error);
+        logRed(`Error al insertar asignaciones en la base de datos:  ${error.message}`)
+       
         throw error;
     } finally {
         dbConnection.end();

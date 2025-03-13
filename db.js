@@ -1,5 +1,6 @@
 import redis from 'redis';
 import dotenv from 'dotenv';
+import { logRed } from './src/funciones/logsCustom.js';
 
 dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
@@ -22,11 +23,14 @@ export const redisClient = redis.createClient({
 });
 
 redisClient.on('error', (err) => {
-    console.error('Error al conectar con Redis:', err);
+    logRed(`Error al conectar con Redis: ${err.message} `)
+ 
 });
 
 export async function updateRedis(empresaId, envioId, choferId) {
-    const DWRTE = await redisClient.get('DWRTE',);
+    let DWRTE = await redisClient.get('DWRTE');
+
+    DWRTE = DWRTE ? JSON.parse(DWRTE) : {};
     const empresaKey = `e.${empresaId}`;
     const envioKey = `en.${envioId}`;
 
@@ -35,15 +39,17 @@ export async function updateRedis(empresaId, envioId, choferId) {
         DWRTE[empresaKey] = {};
     }
 
-    // Solo agrega si el envío no existe
+    // Si el envío no existe, lo creamos
     if (!DWRTE[empresaKey][envioKey]) {
-        DWRTE[empresaKey][envioKey] = {
-            choferId: choferId
-        };
+        DWRTE[empresaKey][envioKey] = {};
     }
+
+    // Actualizamos el choferId siempre
+    DWRTE[empresaKey][envioKey].choferId = choferId;
 
     await redisClient.set('DWRTE', JSON.stringify(DWRTE));
 }
+
 
 let companiesList = {};
 
@@ -73,7 +79,8 @@ async function loadCompaniesFromRedis() {
         companiesList = JSON.parse(companiesListString);
 
     } catch (error) {
-        console.error("Error en loadCompaniesFromRedis:", error);
+        logRed(`Error en loadCompaniesFromRedis: ${error.message} `)
+   
         throw error;
     }
 }
@@ -88,14 +95,16 @@ export async function getCompanyById(companyId) {
 
                 company = companiesList[companyId];
             } catch (error) {
-                console.error("Error al cargar compañías desde Redis:", error);
+                logRed(`Error al cargar compañías desde Redis: ${error.message} `)
+           
                 throw error;
             }
         }
 
         return company;
     } catch (error) {
-        console.error("Error en getCompanyById:", error);
+        logRed(`Error en getCompanyById: ${error.message} `)
+   
         throw error;
     }
 }
@@ -114,7 +123,8 @@ export async function executeQuery(dbConnection, query, values) {
             });
         });
     } catch (error) {
-        console.error("Error al ejecutar la query:", error);
+        logRed(`Error al ejecutar la query: ${error.message} `)
+   
         throw error;
     }
 }
