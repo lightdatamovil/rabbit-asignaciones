@@ -1,4 +1,6 @@
+import { query } from 'express';
 import { executeQuery, getDbConfig, getProdDbConfig, updateRedis } from '../db.js';
+import { logYellow } from '../src/funciones/logsCustom.js';
 import mysql2 from 'mysql2';
 
 export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
@@ -11,7 +13,7 @@ export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
 
         const shipmentId = isFlex
             ? await idFromFlexShipment(dataQr.id, dbConnection)
-            : await idFromLightdataShipment(company, dataQr, dbConnection);
+            : await idFromNoFlexShipment(company, dataQr, dbConnection);
 
         const sqlAsignado = `SELECT id, estado FROM envios_asignaciones WHERE superado=0 AND elim=0 AND didEnvio = ? AND operador = ?`;
         const asignadoRows = await executeQuery(dbConnection, sqlAsignado, [shipmentId, driverId]);
@@ -75,7 +77,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
 
         const shipmentId = isFlex
             ? await idFromFlexShipment(dataQr.id, dbConnection)
-            : await idFromLightdataShipment(company, dataQr, dbConnection);
+            : await idFromNoFlexShipment(company, dataQr, dbConnection);
 
         const sqlOperador = "SELECT operador FROM envios_asignaciones WHERE didEnvio = ? AND superado = 0 AND elim = 0";
 
@@ -115,14 +117,14 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
     }
 }
 
-async function idFromLightdataShipment(company, dataQr, dbConnection) {
+async function idFromNoFlexShipment(company, dataQr, dbConnection) {
     const companyIdFromShipment = dataQr.empresa;
 
-    const shipmentId = dataQr.did;
+    let shipmentId = dataQr.did;
     if (company.did != companyIdFromShipment) {
         try {
             const sql = `SELECT didLocal FROM envios_exteriores WHERE superado=0 AND elim=0 AND didExterno = ? AND didEmpresa = ?`;
-            const rows = await executeQuery(dbConnection, sql, [companyIdFromShipment, companyIdFromShipment]);
+            const rows = await executeQuery(dbConnection, sql, [shipmentId, companyIdFromShipment]);
 
             if (rows.length > 0) {
                 shipmentId = rows[0]["didLocal"];
