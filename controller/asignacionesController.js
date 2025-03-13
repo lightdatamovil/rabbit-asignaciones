@@ -101,7 +101,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
             ? await idFromFlexShipment(dataQr.id, dbConnection)
             : await idFromNoFlexShipment(company, dataQr, dbConnection);
 
-        const sqlOperador = "SELECT operador FROM envios_asignaciones WHERE didEnvio = ? AND superado = 0 AND elim = 0";
+        const sqlOperador = "SELECT operador, estado FROM envios_asignaciones WHERE didEnvio = ? AND superado = 0 AND elim = 0";
         const result = await executeQuery(dbConnection, sqlOperador, [shipmentId]);
 
         const operador = result.length > 0 ? result[0].operador : 0;
@@ -109,15 +109,15 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
         if (operador == 0) {
             return { feature: "asignacion", estadoRespuesta: false, mensaje: "El paquete ya está desasignado" };
         }
-        logYellow("El paquete está asignado");
+        logCyan("El paquete está asignado");
 
         if (!shipmentId) {
             throw new Error("No se pudo obtener el id del envío.");
         }
 
         const insertQuery = "INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES (?, ?, ?, ?, ?, ?)";
-        const resultInsertQuery = await executeQuery(dbConnection, insertQuery, ["", 0, shipmentId, 0, userId, deviceFrom]);
-        logYellow("Inserto en la tabla de asignaciones con el operador 0");
+        const resultInsertQuery = await executeQuery(dbConnection, insertQuery, ["", 0, shipmentId, result[0].estado, userId, deviceFrom]);
+        logCyan("Inserto en la tabla de asignaciones con el operador 0");
 
         // Actualizar asignaciones
         await executeQuery(dbConnection, `UPDATE envios_asignaciones SET superado=1, did=${resultInsertQuery.insertId} WHERE superado=0 AND elim=0 AND didEnvio = ?`, [shipmentId]);
@@ -128,10 +128,13 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
         // Desasignar chofer
         await executeQuery(dbConnection, `UPDATE envios SET choferAsignado = 0 WHERE superado=0 AND elim=0 AND did = ?`, [shipmentId]);
 
-        logYellow("Updateo las tablas");
+        logCyan("Updateo las tablas");
+
+        await insertAsignacionesDB(company.did, shipmentId, 0, result[0].estado, userId, deviceFrom);
+        logCyan("Inserto en la base de datos individual de asignaciones");
 
         await updateRedis(company.did, shipmentId, 0);
-        logYellow("Updateo redis con la desasignación");
+        logCyan("Updateo redis con la desasignación");
 
         return { feature: "asignacion", estadoRespuesta: true, mensaje: "Desasignación realizada correctamente" };
     } catch (error) {

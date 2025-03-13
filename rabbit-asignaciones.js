@@ -23,19 +23,18 @@ async function connectRabbitMQ() {
 
         logBlue(`[*] Esperando mensajes en la cola "${QUEUE_NAME_ASIGNACION}"`)
         logBlue(`[*] Esperando mensajes en la cola "${QUEUE_NAME_DESASIGNACION}"`)
- 
 
         channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
             if (msg !== null) {
                 const body = JSON.parse(msg.content.toString());
                 try {
-              
+
                     logGreen(`[x] Mensaje recibido: ${JSON.stringify(body)}`);
 
                     const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
 
                     if (errorMessage) {
-                      
+
                         logRed(`[x] Error al verificar los parámetros:", ${errorMessage}`);
                         return { mensaje: errorMessage };
                     }
@@ -59,12 +58,12 @@ async function connectRabbitMQ() {
 
                     const sendDuration = endSendTime - startSendTime;
 
-          
+
                     logGreen(`[x] Respuesta enviada al canal ${JSON.stringify(body.channel)} a las ${nowHour}: `, result);
                     logPurple(`Tiempo de envío al canal ${body.channel}: ${sendDuration.toFixed(2)} ms`);
 
                 } catch (error) {
-        
+
                     logRed(`[x] Error al procesar el mensaje:", ${error.menssage}`);
                     let a = channel.sendToQueue(
                         body.channel,
@@ -72,8 +71,7 @@ async function connectRabbitMQ() {
                         { persistent: true }
                     );
                     if (a) {
-               
-                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, success: false, message: error.message });
+                        logGreen(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, success: false, message: ${error.message}`);
                     }
                 } finally {
                     channel.ack(msg);
@@ -90,7 +88,7 @@ async function connectRabbitMQ() {
                     const errorMessage = verifyParamaters(body, ['dataQr', 'deviceFrom', 'channel']);
 
                     if (errorMessage) {
-                   
+
                         logRed(`[x] Error al verificar los parámetros:", ${errorMessage}`);
                         return { mensaje: errorMessage };
                     }
@@ -99,7 +97,7 @@ async function connectRabbitMQ() {
 
                     const resultado = await desasignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
                     logGreen(`[x] Respuesta enviada:", ${JSON.stringify(resultado)}`);
-           
+
                     const nowDate = new Date();
                     const nowHour = nowDate.toLocaleTimeString();
 
@@ -115,21 +113,19 @@ async function connectRabbitMQ() {
 
                     const sendDuration = endSendTime - startSendTime;
 
-                 
-                    logGreen(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}:` ,` ${resultado}`);
-              
-                    logPurple(`Tiempo de envío al canal ${body.channel}: ${sendDuration.toFixed(2)} ms`);
 
+                    logGreen(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}:`, ` ${resultado}`);
+
+                    logPurple(`Tiempo de envío al canal ${body.channel}: ${sendDuration.toFixed(2)} ms`);
                 } catch (error) {
                     logRed(`[x] Error al procesar el mensaje:", ${error.menssage}`)
-                    console.error("[x] Error al procesar el mensaje:", error);
                     let a = channel.sendToQueue(
                         body.channel,
                         Buffer.from(JSON.stringify({ feature: body.feature, success: false, message: error.message })),
                         { persistent: true }
                     );
                     if (a) {
-                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, success: false, message: error.message });
+                        logRed(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, success: false, message: ${error.message}`);
                     }
                 } finally {
                     channel.ack(msg);
@@ -138,7 +134,7 @@ async function connectRabbitMQ() {
         });
     } catch (error) {
         logRed(`Error al conectar con RabbitMQ:", ${error.messaje}`)
-      
+
     }
 }
 

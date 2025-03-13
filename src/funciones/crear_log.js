@@ -7,7 +7,7 @@ export async function crearLog(idEmpresa, operador, endpoint, result, quien, idD
 
         await conLocal.execute(sqlLog, values);
     } catch (error) {
-        console.error("Error al crear log:", error);
+        logRed(`Error en crearLog: ${error.message}`)
         throw error;
     }
 }

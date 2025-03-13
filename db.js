@@ -24,7 +24,7 @@ export const redisClient = redis.createClient({
 
 redisClient.on('error', (err) => {
     logRed(`Error al conectar con Redis: ${err.message} `)
- 
+
 });
 
 export async function updateRedis(empresaId, envioId, choferId) {
@@ -80,7 +80,7 @@ async function loadCompaniesFromRedis() {
 
     } catch (error) {
         logRed(`Error en loadCompaniesFromRedis: ${error.message} `)
-   
+
         throw error;
     }
 }
@@ -96,7 +96,7 @@ export async function getCompanyById(companyId) {
                 company = companiesList[companyId];
             } catch (error) {
                 logRed(`Error al cargar compañías desde Redis: ${error.message} `)
-           
+
                 throw error;
             }
         }
@@ -104,14 +104,12 @@ export async function getCompanyById(companyId) {
         return company;
     } catch (error) {
         logRed(`Error en getCompanyById: ${error.message} `)
-   
+
         throw error;
     }
 }
 
 export async function executeQuery(dbConnection, query, values) {
-    // console.log("Query:", query);
-    // console.log("Values:", values);
     try {
         return new Promise((resolve, reject) => {
             dbConnection.query(query, values, (err, results) => {
@@ -124,7 +122,7 @@ export async function executeQuery(dbConnection, query, values) {
         });
     } catch (error) {
         logRed(`Error al ejecutar la query: ${error.message} `)
-   
+
         throw error;
     }
 }
