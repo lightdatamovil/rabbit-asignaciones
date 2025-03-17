@@ -114,7 +114,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
         if (!shipmentId) {
             throw new Error("No se pudo obtener el id del envío.");
         }
-
+        logYellow(deviceFrom);
         const insertQuery = "INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES (?, ?, ?, ?, ?, ?)";
         const resultInsertQuery = await executeQuery(dbConnection, insertQuery, ["", 0, shipmentId, result[0].estado, userId, deviceFrom]);
         logCyan("Inserto en la tabla de asignaciones con el operador 0");
@@ -130,6 +130,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
 
         logCyan("Updateo las tablas");
 
+        logYellow(deviceFrom);
         await insertAsignacionesDB(company.did, shipmentId, 0, result[0].estado, userId, deviceFrom);
         logCyan("Inserto en la base de datos individual de asignaciones");
 

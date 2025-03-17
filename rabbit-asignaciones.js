@@ -83,7 +83,7 @@ async function connectRabbitMQ() {
                 const body = JSON.parse(msg.content.toString());
                 try {
 
-                    logGreen(`[x] Mensaje recibido:", ${body}`);
+                    logGreen(`[x] Mensaje recibido:", ${JSON.stringify(body)}`);
 
                     const errorMessage = verifyParamaters(body, ['dataQr', 'deviceFrom', 'channel']);
 
@@ -95,7 +95,7 @@ async function connectRabbitMQ() {
 
                     const company = await getCompanyById(body.companyId);
 
-                    const resultado = await desasignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
+                    const resultado = await desasignar(company, body.userId, body.dataQr, body.deviceFrom);
                     logGreen(`[x] Respuesta enviada:", ${JSON.stringify(resultado)}`);
 
                     const nowDate = new Date();
@@ -113,12 +113,11 @@ async function connectRabbitMQ() {
 
                     const sendDuration = endSendTime - startSendTime;
 
-
-                    logGreen(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}:`, ` ${resultado}`);
+                    logGreen(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}: ${JSON.stringify(resultado)}`);
 
                     logPurple(`Tiempo de envío al canal ${body.channel}: ${sendDuration.toFixed(2)} ms`);
                 } catch (error) {
-                    logRed(`[x] Error al procesar el mensaje:", ${error.menssage}`)
+                    logRed(`error al procesar el mensaje: ${error.message}`)
                     let a = channel.sendToQueue(
                         body.channel,
                         Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.stack, error: true })),
