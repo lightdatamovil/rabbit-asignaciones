@@ -121,11 +121,11 @@ async function connectRabbitMQ() {
                     logRed(`[x] Error al procesar el mensaje:", ${error.menssage}`)
                     let a = channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.stack })),
+                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.stack, error: true })),
                         { persistent: true }
                     );
                     if (a) {
-                        logRed(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, estadoRespuesta: false, mensaje: ${error.stack}`);
+                        logRed(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, estadoRespuesta: false, mensaje: ${error.stack},error:true`);
                     }
                 } finally {
                     channel.ack(msg);
