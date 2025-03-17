@@ -1,3 +1,6 @@
+import mysql2 from 'mysql2';
+import { getDbConfig, executeQuery } from '../../db.js';
+import { logRed } from '../../src/funciones/logsCustom.js';
 export async function crearTablaAsignaciones(companyId) {
     const dbConfig = getDbConfig();
     const dbConnection = mysql2.createConnection(dbConfig);
@@ -24,7 +27,7 @@ export async function crearTablaAsignaciones(companyId) {
 
         await executeQuery(dbConnection, createTableSql);
     } catch (error) {
-        logRed(`Error al crear la tabla de asignaciones:  ${error.stack}`)
+        logRed(`Error al crear la tabla de asignaciones: ${error.stack}`)
 
         throw error;
     } finally {
