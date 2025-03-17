@@ -15,7 +15,7 @@ export async function crearUsuario(companyId) {
 
         return;
     } catch (error) {
-        logRed(`Error al crear el usuario:  ${error.message}`)
+        logRed(`Error al crear el usuario:  ${error.stack}`)
 
         throw error;
     } finally {

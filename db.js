@@ -22,8 +22,8 @@ export const redisClient = redis.createClient({
     password: redisPassword,
 });
 
-redisClient.on('error', (err) => {
-    logRed(`Error al conectar con Redis: ${err.message} `)
+redisClient.on('error', (error) => {
+    logRed(`Error al conectar con Redis: ${error.stack} `)
 
 });
 
@@ -79,7 +79,7 @@ async function loadCompaniesFromRedis() {
         companiesList = JSON.parse(companiesListString);
 
     } catch (error) {
-        logRed(`Error en loadCompaniesFromRedis: ${error.message} `)
+        logRed(`Error en loadCompaniesFromRedis: ${error.stack} `)
 
         throw error;
     }
@@ -95,7 +95,7 @@ export async function getCompanyById(companyId) {
 
                 company = companiesList[companyId];
             } catch (error) {
-                logRed(`Error al cargar compañías desde Redis: ${error.message} `)
+                logRed(`Error al cargar compañías desde Redis: ${error.stack} `)
 
                 throw error;
             }
@@ -103,7 +103,7 @@ export async function getCompanyById(companyId) {
 
         return company;
     } catch (error) {
-        logRed(`Error en getCompanyById: ${error.message} `)
+        logRed(`Error en getCompanyById: ${error.stack} `)
 
         throw error;
     }
@@ -121,7 +121,7 @@ export async function executeQuery(dbConnection, query, values) {
             });
         });
     } catch (error) {
-        logRed(`Error al ejecutar la query: ${error.message} `)
+        logRed(`Error al ejecutar la query: ${error.stack} `)
 
         throw error;
     }

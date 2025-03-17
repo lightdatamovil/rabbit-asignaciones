@@ -77,7 +77,7 @@ export async function asignar(company, userId, dataQr, driverId, deviceFrom) {
         return { feature: "asignacion", estadoRespuesta: true, mensaje: "Asignación realizada correctamente" };
     } catch (error) {
 
-        logRed(`Error al asignar paquete:  ${error.message}`)
+        logRed(`Error al asignar paquete:  ${error.stack}`)
         throw error;
     } finally {
         dbConnection.end();
@@ -138,7 +138,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
 
         return { feature: "asignacion", estadoRespuesta: true, mensaje: "Desasignación realizada correctamente" };
     } catch (error) {
-        logRed(`Error al desasignar paquete:  ${error.message}`)
+        logRed(`Error al desasignar paquete:  ${error.stack}`)
         throw error;
     } finally {
         dbConnection.end();

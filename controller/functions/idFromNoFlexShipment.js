@@ -15,7 +15,7 @@ export async function idFromNoFlexShipment(company, dataQr, dbConnection) {
             }
         } catch (error) {
 
-            logRed(`Error al obtener el id del envío:  ${error.message}`)
+            logRed(`Error al obtener el id del envío:  ${error.stack}`)
             throw error;
         }
     } else {

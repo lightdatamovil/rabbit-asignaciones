@@ -67,11 +67,11 @@ async function connectRabbitMQ() {
                     logRed(`[x] Error al procesar el mensaje:", ${error.menssage}`);
                     let a = channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.message })),
+                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.stack })),
                         { persistent: true }
                     );
                     if (a) {
-                        logGreen(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, estadoRespuesta: false, mensaje: ${error.message}`);
+                        logGreen(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, estadoRespuesta: false, mensaje: ${error.stack}`);
                     }
                 } finally {
                     channel.ack(msg);
@@ -121,11 +121,11 @@ async function connectRabbitMQ() {
                     logRed(`[x] Error al procesar el mensaje:", ${error.menssage}`)
                     let a = channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.message })),
+                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.stack })),
                         { persistent: true }
                     );
                     if (a) {
-                        logRed(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, estadoRespuesta: false, mensaje: ${error.message}`);
+                        logRed(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, estadoRespuesta: false, mensaje: ${error.stack}`);
                     }
                 } finally {
                     channel.ack(msg);

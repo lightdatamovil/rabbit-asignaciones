@@ -24,7 +24,7 @@ export async function crearTablaAsignaciones(companyId) {
 
         await executeQuery(dbConnection, createTableSql);
     } catch (error) {
-        logRed(`Error al crear la tabla de asignaciones:  ${error.message}`)
+        logRed(`Error al crear la tabla de asignaciones:  ${error.stack}`)
 
         throw error;
     } finally {
