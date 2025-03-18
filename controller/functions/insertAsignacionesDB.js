@@ -1,4 +1,7 @@
 import { executeQuery, getDbConfig } from "../../db.js";
+
+
+import mysql2 from "mysql2";
 import { logRed } from "../../src/funciones/logsCustom.js";
 
 
@@ -22,7 +25,7 @@ export async function insertAsignacionesDB(companyId, shipmentId, driverId, ship
             await executeQuery(dbConnection, insertSql, [shipmentId, driverId, shipmentState, userId, deviceFrom]);
         }
     } catch (error) {
-        logRed(`Error al insertar asignaciones en la base de datos:  ${error.message}`)
+        logRed(`Error al insertar asignaciones en la base de datos:  ${error.stack}`)
 
         throw error;
     } finally {
