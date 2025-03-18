@@ -1,3 +1,7 @@
+import { executeQuery, getDbConfig } from "../../db.js";
+import { logRed } from "../../src/funciones/logsCustom.js";
+
+
 export async function crearTablaAsignaciones(companyId) {
     const dbConfig = getDbConfig();
     const dbConnection = mysql2.createConnection(dbConfig);

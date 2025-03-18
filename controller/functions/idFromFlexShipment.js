@@ -1,3 +1,6 @@
+import { executeQuery } from "../../db.js";
+
+
 export async function idFromFlexShipment(shipmentId, dbConnection) {
     try {
         const query = `SELECT did FROM envios WHERE flex=1 AND superado=0 AND elim=0 AND ml_shipment_id = ? LIMIT 1`;
