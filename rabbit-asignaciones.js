@@ -28,7 +28,6 @@ async function connectRabbitMQ() {
             if (msg !== null) {
                 const body = JSON.parse(msg.content.toString());
                 try {
-
                     logGreen(`[x] Mensaje recibido: ${JSON.stringify(body)}`);
 
                     const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
@@ -120,7 +119,7 @@ async function connectRabbitMQ() {
                     logRed(`Error al procesar el mensaje: ${error.message}`)
                     let a = channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.message, error: true})),
+                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.message, error: true })),
                         Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.stack, error: true })),
                         { persistent: true }
                     );
