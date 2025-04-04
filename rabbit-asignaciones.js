@@ -11,11 +11,15 @@ const RABBITMQ_URL = process.env.RABBITMQ_URL;
 const QUEUE_NAME_ASIGNACION = process.env.QUEUE_NAME_ASIGNACION;
 const QUEUE_NAME_DESASIGNACION = process.env.QUEUE_NAME_DESASIGNACION;
 
-let connection, channel;
+let connection = null;
+let channel = null;
+let reconnecting = false;
 
-async function setupRabbitMQ() {
+async function startRabbitMQ() {
     try {
-        await redisClient.connect();
+        if (!redisClient.isOpen) {
+            await redisClient.connect();
+        }
 
         connection = await connect(RABBITMQ_URL);
         channel = await connection.createChannel();
@@ -23,35 +27,31 @@ async function setupRabbitMQ() {
         await channel.assertQueue(QUEUE_NAME_ASIGNACION, { durable: true });
         await channel.assertQueue(QUEUE_NAME_DESASIGNACION, { durable: true });
 
-        logBlue(`[*] Esperando mensajes en la cola "${QUEUE_NAME_ASIGNACION}"`)
-        logBlue(`[*] Esperando mensajes en la cola "${QUEUE_NAME_DESASIGNACION}"`)
+        logBlue(`[*] Conectado. Esperando mensajes en "${QUEUE_NAME_ASIGNACION}" y "${QUEUE_NAME_DESASIGNACION}"`);
 
         channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
             if (!msg) return;
             const body = JSON.parse(msg.content.toString());
             try {
-                logGreen(`[x] Mensaje recibido: ${JSON.stringify(body)}`);
+                logGreen(`[x] Mensaje recibido ASIGNACION: ${JSON.stringify(body)}`);
 
                 const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
                 if (errorMessage) {
-                    logRed(`[x] Error al verificar los parámetros: ${errorMessage}`);
+                    logRed(`[x] Error parámetros: ${errorMessage}`);
                     return;
                 }
 
                 const company = await getCompanyById(body.companyId);
                 const result = await asignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
 
-                const nowDate = new Date();
-                const nowHour = nowDate.toLocaleTimeString();
                 const startSendTime = performance.now();
-
                 channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(result)), { persistent: true });
-
                 const sendDuration = performance.now() - startSendTime;
-                logGreen(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}:`, result);
-                logPurple(`Tiempo de envío al canal ${body.channel}: ${sendDuration.toFixed(2)} ms`);
+
+                logGreen(`[x] Respuesta enviada a ${body.channel}:`, result);
+                logPurple(`⏱ Tiempo envío: ${sendDuration.toFixed(2)} ms`);
             } catch (error) {
-                logRed(`Error al procesar el mensaje: ${error.message}`);
+                logRed(`❌ Error al procesar mensaje: ${error.message}`);
                 channel.sendToQueue(body.channel, Buffer.from(JSON.stringify({
                     feature: body.feature,
                     estadoRespuesta: false,
@@ -67,27 +67,25 @@ async function setupRabbitMQ() {
             if (!msg) return;
             const body = JSON.parse(msg.content.toString());
             try {
-                logGreen(`[x] Mensaje recibido: ${JSON.stringify(body)}`);
+                logGreen(`[x] Mensaje recibido DESASIGNACION: ${JSON.stringify(body)}`);
+
                 const errorMessage = verifyParamaters(body, ['dataQr', 'deviceFrom', 'channel']);
                 if (errorMessage) {
-                    logRed(`[x] Error al verificar los parámetros: ${errorMessage}`);
+                    logRed(`[x] Error parámetros: ${errorMessage}`);
                     return;
                 }
 
                 const company = await getCompanyById(body.companyId);
-                const resultado = await desasignar(company, body.userId, body.dataQr, body.deviceFrom);
+                const result = await desasignar(company, body.userId, body.dataQr, body.deviceFrom);
 
-                const nowDate = new Date();
-                const nowHour = nowDate.toLocaleTimeString();
                 const startSendTime = performance.now();
-
-                channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(resultado)), { persistent: true });
-
+                channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(result)), { persistent: true });
                 const sendDuration = performance.now() - startSendTime;
-                logGreen(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}: ${JSON.stringify(resultado)}`);
-                logPurple(`Tiempo de envío al canal ${body.channel}: ${sendDuration.toFixed(2)} ms`);
+
+                logGreen(`[x] Respuesta enviada a ${body.channel}: ${JSON.stringify(result)}`);
+                logPurple(`⏱ Tiempo envío: ${sendDuration.toFixed(2)} ms`);
             } catch (error) {
-                logRed(`Error al procesar el mensaje: ${error.message}`);
+                logRed(`❌ Error al procesar mensaje: ${error.message}`);
                 channel.sendToQueue(body.channel, Buffer.from(JSON.stringify({
                     feature: body.feature,
                     estadoRespuesta: false,
@@ -99,41 +97,41 @@ async function setupRabbitMQ() {
             }
         });
 
-        // Reconexión automática
-        connection.on('close', () => {
-            logRed('Conexión cerrada. Reintentando en 5 segundos...');
-            setTimeout(connectRabbitMQ, 5000);
-        });
-
+        connection.on('close', handleReconnect);
         connection.on('error', (err) => {
-            logRed('Error en la conexión:', err);
-            setTimeout(connectRabbitMQ, 5000);
+            logRed(`⚠️ Conexión con error: ${err.message}`);
         });
 
-        channel.on('close', () => {
-            logRed('Canal cerrado. Reintentando en 5 segundos...');
-            setTimeout(connectRabbitMQ, 5000);
-        });
-
+        channel.on('close', handleReconnect);
         channel.on('error', (err) => {
-            logRed('Error en el canal:', err);
-            setTimeout(connectRabbitMQ, 5000);
+            logRed(`⚠️ Canal con error: ${err.message}`);
         });
 
     } catch (err) {
-        logRed(`Error al conectar con RabbitMQ: ${err.message}`);
-        setTimeout(connectRabbitMQ, 5000); // Reintento si hay error al conectar
+        logRed(`❌ Error inicial al conectar: ${err.message}`);
+        handleReconnect();
     }
 }
 
-async function connectRabbitMQ() {
-    if (connection) {
-        try { await connection.close(); } catch {}
-    }
-    if (channel) {
-        try { await channel.close(); } catch {}
-    }
-    await setupRabbitMQ();
+function handleReconnect() {
+    if (reconnecting) return;
+    reconnecting = true;
+
+    logRed('🔄 Intentando reconectar en 5 segundos...');
+    setTimeout(async () => {
+        reconnecting = false;
+        try {
+            if (connection) {
+                await connection.close().catch(() => {});
+            }
+            if (channel) {
+                await channel.close().catch(() => {});
+            }
+        } catch (e) {
+            logRed('❌ Error cerrando conexión/canal antes de reconectar.');
+        }
+        await startRabbitMQ();
+    }, 5000);
 }
 
-connectRabbitMQ();
+startRabbitMQ();
