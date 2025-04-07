@@ -1,6 +1,7 @@
 import { connect } from 'amqplib';
 import dotenv from 'dotenv';
-import { asignar, desasignar } from './controller/asignacionesController.js';
+import { asignar } from './controller/asignacion/asignacion.js';
+import { desasignar } from './controller/desasignacion/desasignacion.js';
 import { verifyParamaters } from './src/funciones/verifyParameters.js';
 import { getCompanyById, redisClient } from './db.js';
 import { logBlue, logGreen, logPurple, logRed } from './src/funciones/logsCustom.js';
@@ -27,13 +28,16 @@ async function startRabbitMQ() {
         await channel.assertQueue(QUEUE_NAME_ASIGNACION, { durable: true });
         await channel.assertQueue(QUEUE_NAME_DESASIGNACION, { durable: true });
 
-        logBlue(`Conectado. Esperando mensajes en "${QUEUE_NAME_ASIGNACION}" y "${QUEUE_NAME_DESASIGNACION}"`);
+        logBlue(`Conectado. Esperando mensajes en "${QUEUE_NAME_ASIGNACION}"`);
 
         channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
             if (!msg) return;
+
             const body = JSON.parse(msg.content.toString());
+            logGreen(`Mensaje recibido ASIGNACION: ${JSON.stringify(body)}`);
+
             try {
-                logGreen(`Mensaje recibido ASIGNACION: ${JSON.stringify(body)}`);
+                const startSendTime = performance.now();
 
                 const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
                 if (errorMessage) {
@@ -42,13 +46,15 @@ async function startRabbitMQ() {
                 }
 
                 const company = await getCompanyById(body.companyId);
-                const result = await asignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
 
-                const startSendTime = performance.now();
+                const result = await asignar(startSendTime, company, body.userId, body, body.driverId, body.deviceFrom);
+
                 channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(result)), { persistent: true });
+
                 const sendDuration = performance.now() - startSendTime;
 
-                logGreen(`Respuesta enviada a ${body.channel}:`, result);
+                logGreen(`Respuesta enviada a ${body.channel}: ${JSON.stringify(result)}`);
+
                 logPurple(`Tiempo envío: ${sendDuration.toFixed(2)} ms`);
             } catch (error) {
                 logRed(`Error al procesar mensaje: ${error.message}`);
@@ -63,11 +69,16 @@ async function startRabbitMQ() {
             }
         });
 
+        logBlue(`Conectado. Esperando mensajes en "${QUEUE_NAME_DESASIGNACION}"`);
+
         channel.consume(QUEUE_NAME_DESASIGNACION, async (msg) => {
             if (!msg) return;
+
             const body = JSON.parse(msg.content.toString());
+            logGreen(`Mensaje recibido DESASIGNACION: ${JSON.stringify(body)}`);
+
             try {
-                logGreen(`Mensaje recibido DESASIGNACION: ${JSON.stringify(body)}`);
+                const startSendTime = performance.now();
 
                 const errorMessage = verifyParamaters(body, ['dataQr', 'deviceFrom', 'channel']);
                 if (errorMessage) {
@@ -76,13 +87,13 @@ async function startRabbitMQ() {
                 }
 
                 const company = await getCompanyById(body.companyId);
-                const result = await desasignar(company, body.userId, body.dataQr, body.deviceFrom);
+                const result = await desasignar(startSendTime, company, body.userId, body, body.deviceFrom);
 
-                const startSendTime = performance.now();
                 channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(result)), { persistent: true });
-                const sendDuration = performance.now() - startSendTime;
 
                 logGreen(`Respuesta enviada a ${body.channel}: ${JSON.stringify(result)}`);
+
+                const sendDuration = performance.now() - startSendTime;
                 logPurple(`Tiempo envío: ${sendDuration.toFixed(2)} ms`);
             } catch (error) {
                 logRed(`Error al procesar mensaje: ${error.message}`);

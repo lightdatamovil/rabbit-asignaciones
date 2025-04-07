@@ -5,10 +5,8 @@ import mysql2 from "mysql2";
 import { logRed } from "../../src/funciones/logsCustom.js";
 
 
-export async function insertAsignacionesDB(companyId, shipmentId, driverId, shipmentState, userId, deviceFrom) {
-    const dbConfig = getDbConfig();
-    const dbConnection = mysql2.createConnection(dbConfig);
-    dbConnection.connect();
+export async function insertAsignacionesDB(dbConnection, companyId, shipmentId, driverId, shipmentState, userId, deviceFrom) {
+
 
     try {
         const checkSql = `SELECT id FROM asignaciones_${companyId} WHERE didenvio = ? AND superado = 0`;
@@ -28,7 +26,5 @@ export async function insertAsignacionesDB(companyId, shipmentId, driverId, ship
         logRed(`Error al insertar asignaciones en la base de datos:  ${error.stack}`)
 
         throw error;
-    } finally {
-        dbConnection.end();
     }
 }
