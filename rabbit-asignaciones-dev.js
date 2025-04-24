@@ -49,6 +49,10 @@ async function startRabbitMQ() {
 
                 const result = await asignar(startSendTime, company, body.userId, body, body.driverId, body.deviceFrom);
 
+                await channel.assertQueue(body.channel, {
+                    durable: true,
+                    autoDelete: true
+                });
                 channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(result)), { persistent: true });
 
                 const sendDuration = performance.now() - startSendTime;
@@ -58,6 +62,11 @@ async function startRabbitMQ() {
                 logPurple(`Tiempo envío: ${sendDuration.toFixed(2)} ms`);
             } catch (error) {
                 logRed(`Error al procesar mensaje: ${error.message}`);
+
+                await channel.assertQueue(body.channel, {
+                    durable: true,
+                    autoDelete: true
+                });
                 channel.sendToQueue(body.channel, Buffer.from(JSON.stringify({
                     feature: body.feature,
                     estadoRespuesta: false,
