@@ -4,7 +4,7 @@ import mysql2 from 'mysql2';
 
 import { logRed } from "../../src/funciones/logsCustom.js";
 
-export async function crearUsuario(companyId) {
+export async function crearUsuario(dbConnection, companyId) {
     try {
         const username = `usuario_${companyId}`;
         const password = '78451296';
