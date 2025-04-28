@@ -50,10 +50,10 @@ export async function asignar(startTime, company, userId, body, driverId, device
 
         const estado = estadoRows[0].estado;
 
-        await crearTablaAsignaciones(company.did);
+        await crearTablaAsignaciones(dbConnectionLocal, company.did);
         logCyan("Creo la tabla de asignaciones");
 
-        await crearUsuario(company.did);
+        await crearUsuario(dbConnectionLocal, company.did);
         logCyan("Creo el usuario");
 
         const insertSql = `INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES (?, ?, ?, ?, ?, ?)`;
